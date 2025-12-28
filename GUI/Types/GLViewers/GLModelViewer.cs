@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Windows.Forms;
 using GUI.Controls;
 using GUI.Types.Renderer;
@@ -261,10 +262,13 @@ namespace GUI.Types.GLViewers
                     Resource resource = model.Resource;
                     // filepath
                     string fileName = Path.GetFileName(resource.FileName);
-                    fileName = Path.GetFileName(Path.ChangeExtension(resource.FileName, ".data"));
+                    string txtFileName = Path.ChangeExtension(fileName, ".txt");
+                    fileName = Path.ChangeExtension(fileName, ".data");
                     string desktopPath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
                     string fullFilePath = Path.Combine(desktopPath, fileName);
+                    string fullTxtFilePath = Path.Combine(desktopPath, txtFileName);
                     fullFilePath = GetUniqueFileName(fullFilePath);
+                    fullTxtFilePath = GetUniqueFileName(fullTxtFilePath);
                     // get model data
                     Block modelData = resource.GetBlockByType(BlockType.DATA);
                     resource.Reader.BaseStream.Position = modelData.Offset;
@@ -274,8 +278,13 @@ namespace GUI.Types.GLViewers
                     {
                         file.Write(rawData, 0, rawData.Length);
                     }
+                    using (var file = File.Create(fullTxtFilePath))
+                    {
+                        string txtFile = modelData.ToString();
+                        byte[] bytes = Encoding.UTF8.GetBytes(txtFile);
+                        file.Write(bytes, 0, bytes.Length);
+                    }
                     MessageBox.Show("Save data file to desktop！", "Note", MessageBoxButtons.OK, MessageBoxIcon.Information);
-
                 };
                 UiControl.AddControl(saveButton);
 
