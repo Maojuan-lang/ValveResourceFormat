@@ -5,6 +5,7 @@ using System.Windows.Forms;
 using GUI.Controls;
 using GUI.Types.Renderer;
 using GUI.Utils;
+using ValveResourceFormat;
 using ValveResourceFormat.IO;
 using ValveResourceFormat.ResourceTypes;
 using ValveResourceFormat.ResourceTypes.ModelAnimation;
@@ -249,6 +250,34 @@ namespace GUI.Types.GLViewers
                         }
                     }, modelSceneNode.SetActiveMeshGroups);
                 }
+
+                // add save button
+                var saveButton = new Button
+                {
+                    Text = "save file"
+                };
+                saveButton.Click += (s, e) =>
+                {
+                    Resource resource = model.Resource;
+                    // filepath
+                    string fileName = Path.GetFileName(resource.FileName);
+                    fileName = Path.GetFileName(Path.ChangeExtension(resource.FileName, ".data"));
+                    string desktopPath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
+                    string fullFilePath = Path.Combine(desktopPath, fileName);
+                    fullFilePath = GetUniqueFileName(fullFilePath);
+                    // get model data
+                    Block modelData = resource.GetBlockByType(BlockType.DATA);
+                    resource.Reader.BaseStream.Position = modelData.Offset;
+                    byte[] rawData = resource.Reader.ReadBytes((int)modelData.Size);
+                    // save the file
+                    using (var file = File.Create(fullFilePath))
+                    {
+                        file.Write(rawData, 0, rawData.Length);
+                    }
+                    MessageBox.Show("Save data file to desktop！", "Note", MessageBoxButtons.OK, MessageBoxIcon.Information);
+
+                };
+                UiControl.AddControl(saveButton);
 
                 var materialGroupNames = model.GetMaterialGroups().Select(group => group.Name).ToArray<object>();
 
@@ -524,5 +553,25 @@ namespace GUI.Types.GLViewers
 
             animationComboBox.EndUpdate();
         }
+
+        // get a file name
+        public static string GetUniqueFileName(string filePath)
+        {
+            if (!File.Exists(filePath))
+                return filePath;
+
+            string directory = Path.GetDirectoryName(filePath);
+            string fileNameWithoutExtension = Path.GetFileNameWithoutExtension(filePath);
+            string extension = Path.GetExtension(filePath);
+
+            string newFilePath;
+            int count = 1;
+
+            while (File.Exists(newFilePath = Path.Combine(directory,
+                $"{fileNameWithoutExtension} ({count++}){extension}"))) ;
+
+            return newFilePath;
+        }
+
     }
 }
